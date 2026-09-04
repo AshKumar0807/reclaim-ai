@@ -1,0 +1,87 @@
+# FILE: docker-compose.yml
+# Full production-shaped stack: Postgres + RabbitMQ + API + Worker + Frontend.
+# One command: `docker compose up --build`
+#
+# This runs the RABBITMQ + POSTGRES profile (spec 18). The API publishes jobs to
+# RabbitMQ and the separate `worker` service consumes them (workers scale
+# independently). Set QUEUE_PROVIDER=local + a SQLite DATABASE_URL to run the
+# zero-infra profile instead.
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: reclaim
+      POSTGRES_PASSWORD: reclaim
+      POSTGRES_DB: reclaimai
+    ports: ["5432:5432"]
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U reclaim -d reclaimai"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports: ["5672:5672", "15672:15672"]   # AMQP + management UI
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build: ./backend
+    env_file:
+      - path: ./backend/.env
+        required: false
+    environment:
+      # This build's persistence layer uses SQLite (stdlib). Backend + worker
+      # share the same file via the `appdata` volume so the multi-container
+      # RabbitMQ profile works end-to-end. For a large-scale Postgres deployment,
+      # implement the psycopg repository (DESIGN.md); `db` is already provisioned.
+      DATABASE_URL: sqlite:////app/data/reclaimai.db
+      QUEUE_PROVIDER: rabbitmq
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      JWT_SECRET: change-me-in-production-please-32bytes-minimum
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+      db: { condition: service_healthy }
+    ports: ["8000:8000"]
+    volumes: ["appdata:/app/data"]
+    command: sh -c "python -m app.seed && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+  worker:
+    build: ./backend
+    env_file:
+      - path: ./backend/.env
+        required: false
+    environment:
+      DATABASE_URL: sqlite:////app/data/reclaimai.db
+      QUEUE_PROVIDER: rabbitmq
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+    volumes: ["appdata:/app/data"]
+    command: sh -c "sleep 5 && python worker.py"
+
+  frontend:
+    build:
+      context: ./frontend
+      args: { VITE_API_URL: "http://localhost:8000" }
+    depends_on: [backend]
+    ports: ["5173:80"]
+
+  ngrok:
+    image: ngrok/ngrok:latest
+    env_file:
+      - path: ./backend/.env
+        required: false
+    command: http backend:8000 --log=stdout
+    depends_on: [backend]
+    ports: ["4040:4040"]
+
+volumes:
+  pgdata:
+  appdata:

@@ -1,0 +1,19 @@
+# FILE: backend/requirements.txt
+# Core (all that the LOCAL/simulation profile needs)
+fastapi>=0.111
+uvicorn[standard]>=0.30
+pydantic>=2.7
+pydantic-settings>=2.3
+PyJWT>=2.8
+httpx>=0.27
+faker>=25.0
+mcp>=1.9,<2
+
+# --- Optional: enable real integrations by installing these ---
+# psycopg[binary]>=3.1     # PostgreSQL (production DATABASE_URL)
+# pika>=1.3                # RabbitMQ (QUEUE_PROVIDER=rabbitmq)
+# langgraph>=0.2           # real LangGraph (auto-detected by graph_engine)
+# razorpay>=1.4            # official Razorpay SDK (optional; httpx is used otherwise)
+
+# --- Dev / test ---
+pytest>=8.0
