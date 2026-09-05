@@ -16,7 +16,6 @@ const TABS = [
   { name: "Audit", icon: "≡" },
   { name: "Settings", icon: "⚙" },
 ];
-<<<<<<< HEAD
 
 class PageErrorBoundary extends React.Component {
   state = { hasError: false };
@@ -32,8 +31,6 @@ class PageErrorBoundary extends React.Component {
     );
   }
 }
-=======
->>>>>>> main
 
 export default function App() {
   const [authed, setAuthed] = useState(!!getToken());
@@ -100,7 +97,6 @@ export default function App() {
       )}
 
       <main className="main-content">
-<<<<<<< HEAD
         <PageErrorBoundary key={tab}>
           {tab === "Dashboard" && <Dashboard tick={tick} onNavigate={setTab} />}
           {tab === "Recoveries" && <Recoveries tick={tick} />}
@@ -108,13 +104,6 @@ export default function App() {
           {tab === "Audit" && <Audit tick={tick} />}
           {tab === "Settings" && <Settings merchant={merchant} onChange={setMerchant} />}
         </PageErrorBoundary>
-=======
-        {tab === "Dashboard" && <Dashboard tick={tick} onNavigate={setTab} />}
-        {tab === "Recoveries" && <Recoveries tick={tick} />}
-        {tab === "Approvals" && <Approvals tick={tick} />}
-        {tab === "Audit" && <Audit tick={tick} />}
-        {tab === "Settings" && <Settings merchant={merchant} onChange={setMerchant} />}
->>>>>>> main
       </main>
     </div>
   );
