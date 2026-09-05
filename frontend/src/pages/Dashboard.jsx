@@ -52,18 +52,18 @@ export default function Dashboard({ tick, onNavigate }) {
     try {
       const result = await api.simulate(presets[kind]);
       setNotice(`Recovery event accepted · ${result.recovery_event_id || result.status}`);
-      setTimeout(() => refresh().catch(() => {}), 1200);
+      setTimeout(() => refresh().catch(() => { }), 1200);
     } catch { setNotice("Could not start the simulation. Please try again."); }
     finally { setBusy(false); }
   }
 
   if (error) return <div className="panel p-8 max-w-xl"><div className="text-rose-300 font-bold">Unable to load dashboard</div><p className="text-sm text-slate-400 mt-2">The recovery service could not be reached.</p><button className="mt-5 rounded-lg bg-violet-500 px-4 py-2 text-sm font-bold" onClick={() => refresh().catch(() => setError("Unable to load dashboard data."))}>Retry</button></div>;
-  if (!metrics) return <div className="space-y-5"><div className="h-10 w-72 skeleton" /><div className="grid grid-cols-2 lg:grid-cols-5 gap-4">{[1,2,3,4,5].map((n) => <div className="h-32 skeleton" key={n} />)}</div></div>;
+  if (!metrics) return <div className="space-y-5"><div className="h-10 w-72 skeleton" /><div className="grid grid-cols-2 lg:grid-cols-5 gap-4">{[1, 2, 3, 4, 5].map((n) => <div className="h-32 skeleton" key={n} />)}</div></div>;
 
   const recoverable = Math.max(0, metrics.revenue_at_risk - metrics.gross_recovered);
   return <div className="space-y-7">
     <div className="flex flex-wrap justify-between gap-5 items-end">
-      <div><div className="page-eyebrow">Revenue recovery control center</div><h1 className="page-title mt-2">Good evening, Merchant</h1><p className="text-sm text-slate-400 mt-2">Here’s what ReclaimAI recovered for you.</p></div>
+      <div><div className="page-eyebrow">Revenue recovery control center</div><h1 className="page-title mt-2">Good evening, Merchant</h1><p className="text-sm text-slate-400 mt-2">Here’s what ReSpark recovered for you.</p></div>
       <div className="flex items-center gap-2"><select className="bg-[#111827] border border-[#29364b] rounded-lg text-xs px-3 py-2 text-slate-300"><option>Current period</option></select><button onClick={() => refresh().catch(() => setError("Unable to refresh dashboard."))} className="border border-[#29364b] rounded-lg px-3 py-2 text-xs text-slate-300 hover:bg-slate-800">↻ Refresh</button></div>
     </div>
     {notice && <div className="rounded-lg border border-violet-500/30 bg-violet-500/10 px-4 py-3 text-sm text-violet-200">{notice}</div>}
@@ -74,7 +74,7 @@ export default function Dashboard({ tick, onNavigate }) {
       <Kpi label="Active recoveries" value={metrics.active_recoveries} detail="Agent is working now" accent="text-sky-300" icon="●" />
       <Kpi label="Needs approval" value={metrics.pending_approvals} detail="Human decisions pending" accent="text-amber-300" icon="!" />
     </div>
-    <div className="panel px-5 py-4 flex flex-wrap gap-2 items-center"><span className="text-sm font-semibold">ReclaimAI recovered <b className="text-emerald-300">{inr(metrics.gross_recovered)}</b> this period.</span><span className="text-sm text-slate-400">{recent.length || "No"} recent cases · <b className="text-slate-200">{inr(recoverable)}</b> remains recoverable across {metrics.active_recoveries} active cases.</span></div>
+    <div className="panel px-5 py-4 flex flex-wrap gap-2 items-center"><span className="text-sm font-semibold">ReSpark recovered <b className="text-emerald-300">{inr(metrics.gross_recovered)}</b> this period.</span><span className="text-sm text-slate-400">{recent.length || "No"} recent cases · <b className="text-slate-200">{inr(recoverable)}</b> remains recoverable across {metrics.active_recoveries} active cases.</span></div>
 
     <section className="panel p-5">
       <div className="flex flex-wrap justify-between gap-3 mb-5"><div><div className="panel-title">Recovery pipeline</div><p className="text-xs text-slate-500 mt-1">Payment failure → agent reasoning → action → revenue recovered</p></div><button className="text-xs text-violet-300 hover:text-violet-200" onClick={() => onNavigate("Recoveries")}>View all recoveries →</button></div>
@@ -91,7 +91,7 @@ export default function Dashboard({ tick, onNavigate }) {
       <section className="panel p-5"><div className="flex justify-between items-center mb-4"><div><div className="panel-title">Agent activity</div><p className="text-xs text-slate-500 mt-1">Live decisions from your recovery agent</p></div><span className="text-[11px] text-emerald-300"><span className="status-dot" /> Live</span></div>
         <div className="space-y-1">{recent.map((r) => <button onClick={() => onNavigate("Recoveries")} key={r.id} className="w-full text-left flex items-center gap-3 border-t border-slate-800/80 py-3 first:border-0 hover:bg-slate-900/60 rounded-lg px-2"><span className="h-2 w-2 rounded-full bg-violet-400 shrink-0" /><div className="min-w-0 flex-1"><div className="text-sm font-semibold truncate">{r.selected_action || "Payment diagnosed"}</div><div className="text-xs text-slate-500 mt-1">{inr(r.amount)} · {r.failure_reason || r.root_cause || "Recovery case"}</div></div><span className="text-[11px] text-slate-600">{timeAgo(r.created_at)}</span></button>)}{recent.length === 0 && <div className="py-8 text-center text-sm text-slate-500">No agent activity yet.</div>}</div>
       </section>
-      <section className="panel p-5"><div className="panel-title">Simulation controls</div><p className="text-xs text-slate-500 mt-1 mb-5">Test the agent flow without real-money processing.</p><div className="space-y-2">{[["funds","Insufficient funds"],["card","Expired card"],["b2b","High-value B2B"]].map(([key, label]) => <button disabled={busy} onClick={() => simulate(key)} key={key} className="w-full flex items-center justify-between bg-slate-800/60 hover:bg-slate-800 rounded-lg px-3 py-3 text-sm disabled:opacity-50"><span>{label}</span><span className="text-violet-300">Run →</span></button>)}</div></section>
+      <section className="panel p-5"><div className="panel-title">Simulation controls</div><p className="text-xs text-slate-500 mt-1 mb-5">Test the agent flow without real-money processing.</p><div className="space-y-2">{[["funds", "Insufficient funds"], ["card", "Expired card"], ["b2b", "High-value B2B"]].map(([key, label]) => <button disabled={busy} onClick={() => simulate(key)} key={key} className="w-full flex items-center justify-between bg-slate-800/60 hover:bg-slate-800 rounded-lg px-3 py-3 text-sm disabled:opacity-50"><span>{label}</span><span className="text-violet-300">Run →</span></button>)}</div></section>
     </div>
   </div>;
 }

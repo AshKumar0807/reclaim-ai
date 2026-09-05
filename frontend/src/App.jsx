@@ -61,7 +61,7 @@ export default function App() {
     <div className="min-h-screen bg-[#080b12]">
       <header className="topbar">
         <button className="mobile-menu" onClick={() => setSidebarOpen((open) => !open)} aria-label="Toggle navigation">☰</button>
-        <div className="brand"><span className="brand-mark">R</span><span>Reclaim<span className="brand-accent">AI</span></span></div>
+        <div className="brand"><span className="brand-mark">R</span><span>Re<span className="brand-accent">Spark</span></span></div>
         <div className="topbar-right">
           <span className="mode-pill"><span className="pulse-dot" /> {merchant?.environment === "live" ? "Live Mode" : "Simulation Mode"}</span>
           <span className="merchant-name">{merchant?.name || "Merchant"} <span className="muted">⌄</span></span>
