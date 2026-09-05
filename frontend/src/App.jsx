@@ -1,6 +1,6 @@
 // FILE: frontend/src/App.jsx
 // Top-level SPA shell: login gate + merchant-scoped dashboard with tabs.
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { api, getToken, clearToken, openStream } from "./api";
 import Login from "./pages/Login.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
@@ -16,6 +16,24 @@ const TABS = [
   { name: "Audit", icon: "≡" },
   { name: "Settings", icon: "⚙" },
 ];
+<<<<<<< HEAD
+
+class PageErrorBoundary extends React.Component {
+  state = { hasError: false };
+  static getDerivedStateFromError() { return { hasError: true }; }
+  render() {
+    if (!this.state.hasError) return this.props.children;
+    return (
+      <div className="panel max-w-xl p-8">
+        <div className="text-rose-300 font-bold">This view could not be displayed</div>
+        <p className="text-sm text-slate-400 mt-2">The recovery data was incomplete or unavailable. Try loading the view again.</p>
+        <button className="mt-5 rounded-lg bg-violet-500 px-4 py-2 text-sm font-bold" onClick={() => this.setState({ hasError: false })}>Try again</button>
+      </div>
+    );
+  }
+}
+=======
+>>>>>>> main
 
 export default function App() {
   const [authed, setAuthed] = useState(!!getToken());
@@ -82,11 +100,21 @@ export default function App() {
       )}
 
       <main className="main-content">
+<<<<<<< HEAD
+        <PageErrorBoundary key={tab}>
+          {tab === "Dashboard" && <Dashboard tick={tick} onNavigate={setTab} />}
+          {tab === "Recoveries" && <Recoveries tick={tick} />}
+          {tab === "Approvals" && <Approvals tick={tick} />}
+          {tab === "Audit" && <Audit tick={tick} />}
+          {tab === "Settings" && <Settings merchant={merchant} onChange={setMerchant} />}
+        </PageErrorBoundary>
+=======
         {tab === "Dashboard" && <Dashboard tick={tick} onNavigate={setTab} />}
         {tab === "Recoveries" && <Recoveries tick={tick} />}
         {tab === "Approvals" && <Approvals tick={tick} />}
         {tab === "Audit" && <Audit tick={tick} />}
         {tab === "Settings" && <Settings merchant={merchant} onChange={setMerchant} />}
+>>>>>>> main
       </main>
     </div>
   );
