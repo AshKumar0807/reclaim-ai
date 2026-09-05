@@ -1,56 +1,13 @@
-// FILE: frontend/src/pages/Approvals.jsx
-// Human approval queue (spec 9). Approve/Reject are idempotent server-side; a
-// double-click yields HTTP 409 and executes no second action.
 import { useEffect, useState } from "react";
 import { api, inr } from "../api";
 
 export default function Approvals({ tick }) {
-  const [rows, setRows] = useState([]);
-  const [msg, setMsg] = useState(null);
-
+  const [rows, setRows] = useState([]); const [processing, setProcessing] = useState(null); const [message, setMessage] = useState(null); const [error, setError] = useState(false);
   async function refresh() { setRows(await api.approvals()); }
-  useEffect(() => { refresh().catch(console.error); }, [tick]);
-
-  async function decide(id, kind) {
-    try {
-      await (kind === "approve" ? api.approve(id) : api.reject(id));
-      setMsg(`${kind}d ${id}`);
-    } catch (e) {
-      setMsg(String(e).includes("409") ? "Already processed (idempotent)" : "Error");
-    } finally {
-      setTimeout(() => setMsg(null), 3000);
-      refresh();
-    }
-  }
-
-  return (
-    <div className="space-y-3">
-      <div className="flex justify-between items-center">
-        <h2 className="text-lg font-semibold">Approval queue</h2>
-        {msg && <span className="text-xs text-amber-300">{msg}</span>}
-      </div>
-      <div className="text-sm text-slate-400">These interventions were paused by deterministic guardrails. Review the reason before approving.</div>
-      {rows.length === 0 && <div className="text-slate-500 text-sm">Nothing pending. 🎉</div>}
-      <div className="grid gap-3">
-        {rows.map((a) => (
-          <div key={a.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-            <div className="text-xs uppercase text-slate-500">High value recovery</div>
-            <div className="mt-1 grid grid-cols-2 gap-2 text-sm">
-              <div>Customer <div className="font-medium">{a.customer_ref || "—"}</div></div>
-              <div>Amount <div className="font-medium">{inr(a.amount)}</div></div>
-              <div>Action <div className="font-medium">{a.action_type}</div></div>
-              <div>Risk <div className="font-medium">{a.risk}</div></div>
-            </div>
-            <div className="text-xs text-slate-400 mt-2">Guardrail: {a.reason}</div>
-            <div className="flex gap-2 mt-3">
-              <button onClick={() => decide(a.id, "approve")}
-                className="px-3 py-1 rounded bg-emerald-500 text-slate-900 text-xs font-semibold">Approve</button>
-              <button onClick={() => decide(a.id, "reject")}
-                className="px-3 py-1 rounded bg-rose-500/80 text-white text-xs font-semibold">Reject</button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+  useEffect(() => { refresh().catch(() => setError(true)); }, [tick]);
+  async function decide(id, type) { setProcessing(id); setMessage(null); try { await (type === "approve" ? api.approve(id) : api.reject(id)); setMessage(type === "approve" ? "Approval granted. The recovery action is executing." : "Recovery action rejected."); await refresh(); } catch (e) { setMessage(String(e).includes("409") ? "This approval was already processed." : "Unable to process this approval."); } finally { setProcessing(null); } }
+  return <div className="space-y-6"><div><div className="page-eyebrow">Human in the loop</div><h1 className="page-title mt-2">Human approval required</h1><p className="text-sm text-slate-400 mt-2">{rows.length} action{rows.length === 1 ? "" : "s"} require your attention.</p></div>
+    {message && <div className="panel px-4 py-3 text-sm text-violet-200 border-violet-500/30">{message}</div>}
+    {error ? <div className="panel p-8 text-center text-rose-300">Unable to load approval queue. <button className="underline ml-2" onClick={() => { setError(false); refresh().catch(() => setError(true)); }}>Retry</button></div> : rows.length === 0 ? <div className="panel p-12 text-center"><div className="text-3xl mb-3">✓</div><div className="font-semibold">No approvals required</div><p className="text-sm text-slate-500 mt-2">ReclaimAI has no high-risk recovery actions waiting for you.</p></div> : <div className="grid md:grid-cols-2 gap-4">{rows.map((a) => <article key={a.id} className="panel p-5 border-l-2 border-l-amber-400"><div className="flex items-start justify-between gap-3"><div><div className="text-2xl font-extrabold">{inr(a.amount)}</div><div className="text-sm text-slate-400 mt-1">{a.customer_ref || "B2B customer"}</div></div><span className="status-pill status-warning">Pending</span></div><div className="grid grid-cols-2 gap-4 mt-6"><div><div className="text-[10px] uppercase tracking-widest text-slate-500">Recommended action</div><div className="text-sm font-semibold text-violet-300 mt-1">{a.action_type}</div></div><div><div className="text-[10px] uppercase tracking-widest text-slate-500">Risk</div><div className="text-sm mt-1">{a.risk || "High value"}</div></div></div><div className="mt-5 rounded-lg bg-amber-500/10 border border-amber-500/20 p-3"><div className="text-[10px] uppercase tracking-widest text-amber-300">Why?</div><div className="text-sm text-slate-300 mt-1">{a.reason}</div></div><div className="mt-5 space-y-2 text-xs text-slate-400"><div className="text-emerald-300">✓ Customer verified</div><div className="text-emerald-300">✓ Within contact policy</div><div className="text-amber-300">⚠ High-value transaction</div></div><div className="flex gap-2 mt-6"><button disabled={processing === a.id} onClick={() => decide(a.id, "approve")} className="flex-1 rounded-lg bg-emerald-400 py-2.5 text-sm font-bold text-slate-950 disabled:opacity-50">{processing === a.id ? "Processing…" : "Approve"}</button><button disabled={processing === a.id} onClick={() => decide(a.id, "reject")} className="flex-1 rounded-lg border border-rose-500/40 py-2.5 text-sm font-bold text-rose-300 disabled:opacity-50">Reject</button></div></article>)}</div>}
+  </div>;
 }

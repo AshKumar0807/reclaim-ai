@@ -1,34 +1,11 @@
-// FILE: frontend/src/pages/Audit.jsx
 import { useEffect, useState } from "react";
-import { api } from "../api";
+import { api, inr } from "../api";
 
 export default function Audit({ tick }) {
-  const [rows, setRows] = useState([]);
-  useEffect(() => { api.audit("?limit=200").then(setRows).catch(console.error); }, [tick]);
-  return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-      <div className="px-4 py-3 border-b border-slate-800 font-semibold">Audit log (append-only)</div>
-      <div className="max-h-[70vh] overflow-auto">
-        <table className="w-full text-sm">
-          <thead className="text-slate-400 text-xs sticky top-0 bg-slate-900">
-            <tr><th className="text-left px-4 py-2">Time</th><th className="text-left px-4 py-2">Actor</th>
-            <th className="text-left px-4 py-2">Action</th><th className="text-left px-4 py-2">Event</th>
-            <th className="text-left px-4 py-2">Recovery</th><th className="text-left px-4 py-2">Rationale</th></tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.id} className="border-t border-slate-800">
-                <td className="px-4 py-2 text-xs text-slate-500">{r.created_at}</td>
-                <td className="px-4 py-2">{r.actor}</td>
-                <td className="px-4 py-2">{r.action}</td>
-                <td className="px-4 py-2 text-xs">{r.event_type || "—"}</td>
-                <td className="px-4 py-2 font-mono text-xs">{r.recovery_event_id || "—"}</td>
-                <td className="px-4 py-2 text-slate-400">{r.rationale}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
+  const [rows, setRows] = useState([]); const [filter, setFilter] = useState("");
+  useEffect(() => { api.audit("?limit=200").then(setRows).catch(() => setRows([])); }, [tick]);
+  const visible = rows.filter((r) => `${r.action} ${r.event_type} ${r.actor} ${r.rationale}`.toLowerCase().includes(filter.toLowerCase()));
+  return <div className="space-y-6"><div className="flex flex-wrap justify-between gap-4 items-end"><div><div className="page-eyebrow">Traceability</div><h1 className="page-title mt-2">Agent audit trail</h1><p className="text-sm text-slate-400 mt-2">Every important recovery decision is recorded and explainable.</p></div><input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Filter events…" className="bg-[#111827] border border-[#29364b] rounded-lg px-3 py-2 text-sm outline-none focus:border-violet-400" /></div>
+    <div className="panel p-5"><div className="flex items-center gap-3 mb-6"><span className="h-2 w-2 rounded-full bg-violet-400" /><span className="text-sm font-semibold">Append-only event stream</span><span className="text-xs text-slate-600">{visible.length} events</span></div>{visible.length === 0 ? <div className="py-12 text-center text-sm text-slate-500">No audit events match this filter.</div> : <div className="space-y-0">{visible.map((r, index) => <div className="grid grid-cols-[90px_18px_1fr] gap-3 relative pb-6 last:pb-0" key={r.id || index}><div className="mono text-[10px] text-slate-600 pt-0.5">{r.created_at?.split(" ")[1] || r.created_at}</div><div className="flex justify-center"><span className="h-2.5 w-2.5 rounded-full bg-violet-400 ring-4 ring-[#101622] z-10" />{index < visible.length - 1 && <span className="absolute top-3 bottom-0 w-px bg-slate-800" />}</div><div><div className="flex flex-wrap gap-2 items-center"><span className="text-sm font-bold">{r.action}</span><span className="status-pill status-info">{r.actor}</span></div><div className="text-xs text-slate-500 mt-1">{r.event_type || "recovery event"} · {r.recovery_event_id || "system"}</div><div className="text-sm text-slate-400 mt-2">{r.rationale || "Event recorded by ReclaimAI."}</div></div></div>)}</div>}</div>
+  </div>;
 }

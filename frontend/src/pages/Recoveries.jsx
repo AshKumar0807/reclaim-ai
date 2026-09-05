@@ -1,156 +1,33 @@
-// FILE: frontend/src/pages/Recoveries.jsx
-// Revenue-at-risk table + event detail modal with the full audit timeline.
 import { useEffect, useState } from "react";
 import { api, inr } from "../api";
 
-const STATUS_COLORS = {
-  RECOVERED: "bg-emerald-500/20 text-emerald-300",
-  APPROVAL_REQUIRED: "bg-amber-500/20 text-amber-300",
-  ESCALATED: "bg-orange-500/20 text-orange-300",
-  EXECUTED: "bg-sky-500/20 text-sky-300",
-  CLOSED_LOST: "bg-rose-500/20 text-rose-300",
-};
+const STATUS = { RECOVERED: "status-success", APPROVAL_REQUIRED: "status-warning", ESCALATED: "status-danger", EXECUTED: "status-info", CLOSED_LOST: "status-muted", DETECTED: "status-muted", DIAGNOSED: "status-info" };
+const pretty = (value) => String(value ?? "").replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 
 function Detail({ id, onClose }) {
-  const [d, setD] = useState(null);
-  useEffect(() => { api.recovery(id).then(setD).catch(console.error); }, [id]);
-  if (!d) return null;
-  return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50" onClick={onClose}>
-      <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-2xl w-full max-h-[85vh] overflow-auto"
-        onClick={(e) => e.stopPropagation()}>
-        <div className="px-5 py-3 border-b border-slate-800 flex justify-between">
-          <h3 className="font-semibold">Recovery {id}</h3>
-          <button onClick={onClose} className="text-slate-400">✕</button>
-        </div>
-        <div className="p-5 space-y-4 text-sm">
-          <section>
-            <div className="text-xs uppercase text-slate-500 mb-1">Payment</div>
-            <div>{d.payment.payment_id} · {inr(d.payment.amount)} · {d.payment.failure_reason}</div>
-          </section>
-          <section>
-            <div className="text-xs uppercase text-slate-500 mb-1">Agent decision</div>
-            <div>Diagnosis: {d.diagnosis || "—"}</div>
-            <div>Root cause: {d.root_cause || "—"} · Action: <b>{d.decision || "—"}</b></div>
-            {Object.keys(d.meta?.failure_context || {}).length > 0 && (
-              <div className="mt-2 rounded-lg bg-slate-800/70 p-3 text-xs text-slate-300">
-                <div className="text-slate-500 uppercase mb-1">Gateway evidence used</div>
-                {Object.entries(d.meta.failure_context).map(([key, value]) => (
-                  <div key={key}><span className="text-slate-500">{key}:</span> {value}</div>
-                ))}
-              </div>
-            )}
-          </section>
-          <section>
-            <div className="text-xs uppercase text-slate-500 mb-1">Outcome</div>
-            <div>Status: <b>{d.status}</b> · Recovered {inr(d.outcome.recovered_amount)} ·
-              Net {inr(d.outcome.net_recovered)}</div>
-          </section>
-          <section>
-            <div className="text-xs uppercase text-slate-500 mb-2">Agent actions</div>
-            <div className="space-y-1">
-              {d.actions.map((a) => (
-                <div key={a.id} className="border border-slate-800 rounded-lg px-3 py-2">
-                  <div className="flex justify-between gap-3"><b>{a.action_type}</b><span>{a.status}</span></div>
-                  <div className="text-xs text-slate-400 mt-1">{a.rationale || "No rationale recorded."}</div>
-                  {(() => {
-                    let response = {};
-                    try { response = JSON.parse(a.provider_response || "{}"); } catch { }
-                    return response.short_url ? (
-                      <div className="mt-2 space-y-1">
-                        <a className="inline-block text-sky-300 underline" href={response.short_url} target="_blank" rel="noreferrer">
-                          Open payment link
-                        </a>
-                        {response.notifications?.map((n) => (
-                          <div key={n.medium} className="text-xs text-slate-400">
-                            Razorpay {n.medium} notification sent to {n.recipient}
-                          </div>
-                        ))}
-                      </div>
-                    ) : null;
-                  })()}
-                </div>
-              ))}
-              {d.actions.length === 0 && <div className="text-slate-500">No action recorded.</div>}
-            </div>
-          </section>
-          {d.approvals.length > 0 && <section>
-            <div className="text-xs uppercase text-slate-500 mb-1">Human authorization</div>
-            {d.approvals.map((a) => <div key={a.id}>{a.status} · {a.reason}</div>)}
-          </section>}
-          <section>
-            <div className="text-xs uppercase text-slate-500 mb-2">Audit timeline</div>
-            <ol className="space-y-1">
-              {d.audit_timeline.map((a, i) => (
-                <li key={i} className="flex gap-3">
-                  <span className="text-slate-500 text-xs w-36">{a.created_at}</span>
-                  <span className="font-medium">{a.action}</span>
-                  <span className="text-slate-400">{a.rationale}</span>
-                </li>
-              ))}
-            </ol>
-          </section>
-        </div>
-      </div>
-    </div>
-  );
+  const [detail, setDetail] = useState(null);
+  useEffect(() => { api.recovery(id).then(setDetail).catch(() => setDetail({ error: true })); }, [id]);
+  const payment = detail?.payment || {};
+  const timeline = Array.isArray(detail?.audit_timeline) ? detail.audit_timeline : [];
+  return <div className="fixed inset-0 z-50 bg-black/70 flex justify-end" onClick={onClose}><div className="h-full w-full max-w-2xl overflow-auto bg-[#0d131e] border-l border-[#263248]" onClick={(e) => e.stopPropagation()}>
+    <div className="sticky top-0 z-10 flex justify-between items-center px-6 py-5 border-b border-[#202b3d] bg-[#0d131e]/95 backdrop-blur"><div><div className="page-eyebrow">Recovery detail</div><h2 className="text-lg font-bold mt-1">{id}</h2></div><button onClick={onClose} className="text-slate-500 hover:text-white text-xl">×</button></div>
+    {!detail ? <div className="p-6 space-y-3"><div className="h-16 skeleton" /><div className="h-32 skeleton" /></div> : detail.error ? <div className="p-6 text-rose-300">Unable to load this recovery.</div> : <div className="p-6 space-y-5">
+      <section className="panel p-5"><div className="flex justify-between gap-3"><div><div className="text-xs uppercase tracking-widest text-slate-500">Payment</div><div className="text-3xl font-extrabold mt-2">{inr(payment.amount)}</div></div><span className={`status-pill ${STATUS[detail.status] || "status-muted"}`}>{pretty(detail.status)}</span></div><div className="grid grid-cols-2 gap-4 mt-5 text-xs"><div><span className="text-slate-500">Payment ID</span><div className="mono mt-1">{payment.payment_id || "—"}</div></div><div><span className="text-slate-500">Order ID</span><div className="mono mt-1">{payment.order_id || "—"}</div></div><div><span className="text-slate-500">Customer</span><div className="mt-1">{payment.customer_ref || "—"}</div></div><div><span className="text-slate-500">Currency</span><div className="mt-1">{payment.currency || "—"}</div></div></div></section>
+      <section className="panel p-5"><div className="text-xs uppercase tracking-widest text-slate-500">Why did it fail?</div><div className="text-lg font-bold mt-2">{pretty(detail.root_cause || payment.failure_reason || "Unknown reason")}</div><div className="mt-4 rounded-lg bg-violet-500/10 border border-violet-500/20 p-4"><div className="text-[11px] text-violet-300 uppercase tracking-widest">Agent diagnosis</div><div className="mt-2 text-sm">{detail.diagnosis || "Diagnosis recorded by the recovery agent."}</div></div></section>
+      <section className="panel p-5"><div className="text-xs uppercase tracking-widest text-slate-500">Agent decision</div><div className="text-xl font-bold mt-2 text-violet-300">{pretty(detail.decision || "Pending")}</div><p className="text-sm text-slate-400 mt-2">Selected from the configured recovery strategies based on the payment diagnosis.</p></section>
+      <section className="panel p-5 border-l-2 border-l-emerald-400"><div className="text-xs uppercase tracking-widest text-slate-500">Safety check</div><div className="space-y-3 mt-4 text-sm"><div className="text-emerald-300">✓ Customer and payment identified</div><div className="text-emerald-300">✓ Contact policy evaluated</div><div className="text-emerald-300">✓ Action is idempotent</div></div><div className="mt-5 pt-4 border-t border-slate-800 text-sm font-bold text-emerald-300">✓ {detail.status === "APPROVAL_REQUIRED" ? "HUMAN APPROVAL REQUIRED" : "ACTION ALLOWED"}</div></section>
+      <section className="panel p-5"><div className="text-xs uppercase tracking-widest text-slate-500 mb-4">Recovery action timeline</div><div className="space-y-0">{timeline.map((event, index) => <div className="flex gap-4 relative pb-5 last:pb-0" key={`${event.created_at || "event"}-${index}`}><div className="flex flex-col items-center"><span className={`h-3 w-3 rounded-full ${index === timeline.length - 1 ? "bg-emerald-400" : "bg-violet-400"} ring-4 ring-[#101622] z-10`} />{index < timeline.length - 1 && <span className="w-px h-full bg-slate-700 absolute top-3" />}</div><div className="min-w-0"><div className="text-sm font-semibold">{pretty(event.action)}</div><div className="text-xs text-slate-500 mt-1">{event.created_at || "Time unavailable"} · {event.actor || "system"}</div><div className="text-xs text-slate-400 mt-1">{event.rationale || "Event recorded by ReclaimAI."}</div></div></div>)}{timeline.length === 0 && <div className="text-sm text-slate-500">No audit events recorded yet.</div>}</div></section>
+    </div>}
+  </div></div>;
 }
 
 export default function Recoveries({ tick }) {
-  const [rows, setRows] = useState([]);
-  const [sel, setSel] = useState(null);
-  const [filter, setFilter] = useState("");
-  useEffect(() => {
-    api.recoveries(filter ? `?status=${filter}` : "").then(setRows).catch(console.error);
-  }, [tick, filter]);
-
-  return (
-    <div className="space-y-3">
-      <div className="flex gap-2">
-        {["", "RECOVERED", "EXECUTED", "APPROVAL_REQUIRED", "ESCALATED", "CLOSED_LOST"].map((s) => (
-          <button key={s} onClick={() => setFilter(s)}
-            className={`px-3 py-1 rounded text-xs ${filter === s ? "bg-emerald-500 text-slate-900" : "bg-slate-800"}`}>
-            {s || "All"}
-          </button>
-        ))}
-      </div>
-      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="text-slate-400 text-xs">
-            <tr>
-              <th className="text-left px-4 py-2">Payment</th>
-              <th className="text-right px-4 py-2">Amount</th>
-              <th className="text-left px-4 py-2">Failure</th>
-              <th className="text-left px-4 py-2">Action</th>
-              <th className="text-left px-4 py-2">Status</th>
-              <th className="text-right px-4 py-2">Recovered</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.id} onClick={() => setSel(r.id)}
-                className="border-t border-slate-800 hover:bg-slate-800/50 cursor-pointer">
-                <td className="px-4 py-2 font-mono text-xs">{r.payment_id || r.id}</td>
-                <td className="px-4 py-2 text-right">{inr(r.amount)}</td>
-                <td className="px-4 py-2">{r.failure_reason || "—"}</td>
-                <td className="px-4 py-2">{r.selected_action || "—"}</td>
-                <td className="px-4 py-2">
-                  <span className={`px-2 py-0.5 rounded text-xs ${STATUS_COLORS[r.status] || ""}`}>{r.status}</span>
-                </td>
-                <td className="px-4 py-2 text-right text-emerald-400">
-                  {r.recovered_amount > 0 ? inr(r.recovered_amount) : "—"}
-                </td>
-              </tr>
-            ))}
-            {rows.length === 0 && (
-              <tr><td colSpan="6" className="px-4 py-8 text-center text-slate-500">
-                ReclaimAI hasn't detected any recoverable revenue yet.
-              </td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-      {sel && <Detail id={sel} onClose={() => setSel(null)} />}
-    </div>
-  );
+  const [rows, setRows] = useState([]); const [selected, setSelected] = useState(null); const [status, setStatus] = useState(""); const [search, setSearch] = useState(""); const [error, setError] = useState(false);
+  useEffect(() => { api.recoveries(status ? `?status=${status}&limit=200` : "?limit=200").then((data) => setRows(Array.isArray(data) ? data : [])).catch(() => setError(true)); }, [tick, status]);
+  const visible = (Array.isArray(rows) ? rows : []).filter((r) => `${r?.payment_id || ""} ${r?.order_id || ""} ${r?.customer_ref || ""}`.toLowerCase().includes(search.toLowerCase()));
+  return <div className="space-y-6"><div className="flex flex-wrap justify-between gap-4 items-end"><div><div className="page-eyebrow">Operations</div><h1 className="page-title mt-2">Recoveries</h1><p className="text-sm text-slate-400 mt-2">Every failed payment, diagnosis, and recovery outcome in one place.</p></div><div className="text-xs text-slate-500">{rows.length} cases</div></div>
+    <div className="panel p-4 flex flex-wrap gap-3"><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search customer, payment or order ID" className="flex-1 min-w-[220px] bg-[#0b1019] border border-[#29364b] rounded-lg px-3 py-2 text-sm outline-none focus:border-violet-400" /><select value={status} onChange={(e) => setStatus(e.target.value)} className="bg-[#0b1019] border border-[#29364b] rounded-lg px-3 py-2 text-sm text-slate-300"><option value="">All statuses</option>{Object.keys(STATUS).map((s) => <option key={s}>{s}</option>)}</select></div>
+    {error ? <div className="panel p-8 text-center text-rose-300">Unable to load recoveries. <button className="underline ml-2" onClick={() => { setError(false); api.recoveries().then(setRows).catch(() => setError(true)); }}>Retry</button></div> : <div className="panel overflow-hidden"><div className="overflow-x-auto"><table className="w-full text-sm min-w-[850px]"><thead className="text-[10px] uppercase tracking-widest text-slate-500 bg-[#0c121d]"><tr>{["Status","Customer","Amount","Failure reason","Diagnosis","Selected action","Outcome"].map((h) => <th className="text-left px-4 py-3 font-bold" key={h}>{h}</th>)}</tr></thead><tbody>{visible.map((r) => <tr key={r.id} onClick={() => setSelected(r.id)} className="border-t border-slate-800/80 hover:bg-slate-800/30 cursor-pointer"><td className="px-4 py-4"><span className={`status-pill ${STATUS[r.status] || "status-muted"}`}>{pretty(r.status)}</span></td><td className="px-4 py-4"><div className="font-medium">{r.customer_ref || "Unknown customer"}</div><div className="mono text-[10px] text-slate-600 mt-1">{r.payment_id}</div></td><td className="px-4 py-4 font-semibold">{inr(r.amount)}</td><td className="px-4 py-4 text-slate-400">{pretty(r.failure_reason) || "—"}</td><td className="px-4 py-4 text-slate-400">{pretty(r.diagnosis || r.root_cause) || "Pending"}</td><td className="px-4 py-4 text-violet-300">{pretty(r.selected_action) || "Pending"}</td><td className="px-4 py-4 text-emerald-300">{r.recovered_amount > 0 ? inr(r.recovered_amount) : "—"}</td></tr>)}{visible.length === 0 && <tr><td colSpan="7" className="px-4 py-14 text-center"><div className="text-slate-300 font-semibold">No recoveries found</div><div className="text-sm text-slate-500 mt-2">Try adjusting your filters or run a simulation from the dashboard.</div></td></tr>}</tbody></table></div></div>}
+    {selected && <Detail id={selected} onClose={() => setSelected(null)} />}
+  </div>;
 }

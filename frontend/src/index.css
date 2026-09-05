@@ -1,2 +1,53 @@
-@tailwind base; @tailwind components; @tailwind utilities;
-body { @apply bg-slate-950 text-slate-100; }
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { font-family: "Manrope", sans-serif; color: #e8edf5; background: #080b12; font-synthesis: none; }
+body { @apply bg-slate-950 text-slate-100; margin: 0; }
+button, input, select { font: inherit; }
+button { transition: color .18s ease, background-color .18s ease, border-color .18s ease, transform .18s ease; }
+button:active { transform: translateY(1px); }
+.topbar { height: 72px; display:flex; align-items:center; justify-content:space-between; padding: 0 32px; border-bottom: 1px solid #1d2533; background:#0b0f18; position: sticky; top:0; z-index:30; }
+.brand { display:flex; align-items:center; gap:10px; font-size:19px; font-weight:800; letter-spacing:-.04em; }
+.brand-mark { width:28px; height:28px; display:grid; place-items:center; border-radius:8px; background:#7c5ce5; color:white; font-size:16px; }
+.brand-accent { color:#8b6ff0; }
+.topbar-right { display:flex; align-items:center; gap:22px; font-size:13px; }
+.mode-pill { color:#a6b2c6; border:1px solid #293246; background:#111725; border-radius:999px; padding:7px 11px; }
+.pulse-dot, .status-dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:#2bd67b; margin-right:5px; box-shadow:0 0 0 3px rgba(43,214,123,.1); }
+.pulse-dot { background:#a978ff; box-shadow:0 0 0 3px rgba(169,120,255,.12); }
+.merchant-name { color:#d8deea; }
+.muted { color:#68758a; }
+.connection { color:#93a1b6; }
+.logout { color:#738197; background:none; border:0; cursor:pointer; }
+.logout:hover { color:#fff; }
+.sidebar { position:fixed; top:72px; bottom:0; width:236px; padding:28px 16px 20px; border-right:1px solid #1d2533; background:#0b0f18; display:flex; flex-direction:column; z-index:20; }
+.sidebar-label { color:#59667c; font-size:10px; text-transform:uppercase; letter-spacing:.14em; font-weight:700; padding:0 12px 10px; }
+.nav-list { display:grid; gap:5px; }
+.nav-item { display:flex; align-items:center; gap:12px; border:0; border-radius:8px; background:none; color:#8b98ac; padding:11px 12px; font-size:13px; text-align:left; cursor:pointer; }
+.nav-item:hover { color:#e8edf5; background:#131a27; }
+.nav-item-active { color:#fff; background:#1b2435; box-shadow: inset 2px 0 #8b6ff0; }
+.nav-icon { width:18px; color:#738197; text-align:center; font-size:17px; }
+.nav-item-active .nav-icon { color:#a98cff; }
+.nav-badge { margin-left:auto; background:#8b6ff0; color:white; border-radius:999px; min-width:20px; height:20px; display:grid; place-items:center; font-size:11px; font-weight:700; }
+.sidebar-bottom { margin-top:auto; border-top:1px solid #1d2533; padding-top:22px; }
+.connection-card { display:flex; gap:10px; align-items:center; padding:12px; border:1px solid #202b3d; border-radius:10px; background:#101622; font-size:12px; }
+.razorpay-logo { width:26px; height:26px; border-radius:7px; display:grid; place-items:center; background:#2563eb; color:white; font-weight:800; }
+.main-content { margin-left:236px; max-width:1440px; padding:36px 44px 60px; }
+.mobile-menu { display:none; }
+.page-eyebrow { color:#8e6df0; text-transform:uppercase; letter-spacing:.15em; font-size:10px; font-weight:800; }
+.page-title { font-size:27px; line-height:1.15; font-weight:800; letter-spacing:-.04em; color:#f6f8fb; }
+.panel { background:#101622; border:1px solid #202b3d; border-radius:12px; }
+.panel-title { color:#f2f5f9; font-weight:700; font-size:14px; }
+.mono { font-family:"DM Mono", monospace; }
+.skeleton { background:linear-gradient(90deg,#111927 25%,#1a2434 50%,#111927 75%); background-size:200% 100%; animation:shimmer 1.4s infinite; border-radius:6px; }
+.status-pill { display:inline-flex; align-items:center; border-radius:999px; padding:4px 8px; font-size:10px; font-weight:700; white-space:nowrap; }
+.status-success { color:#69e6a0; background:rgba(43,214,123,.12); }
+.status-warning { color:#f8c76d; background:rgba(245,181,63,.12); }
+.status-danger { color:#ff8c9b; background:rgba(244,91,105,.12); }
+.status-info { color:#80caff; background:rgba(73,163,255,.12); }
+.status-muted { color:#99a5b7; background:rgba(148,163,184,.1); }
+@keyframes shimmer { to { background-position:-200% 0; } }
+@media (max-width: 900px) { .topbar { padding:0 18px; } .topbar-right { gap:10px; } .merchant-name, .logout { display:none; } .sidebar { transform:translateX(-100%); transition:transform .2s ease; } .sidebar-open { transform:translateX(0); } .mobile-menu { display:block; background:none; border:0; color:#a8b4c6; font-size:20px; margin-right:10px; } .brand { margin-right:auto; } .main-content { margin-left:0; padding:26px 18px 44px; } }
+@media (max-width: 600px) { .main-content { padding:22px 14px; } .page-title { font-size:23px; } .mode-pill { font-size:11px; padding:6px 8px; } }
