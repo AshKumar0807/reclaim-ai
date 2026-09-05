@@ -15,6 +15,8 @@ For a real Razorpay integration, capture arrives asynchronously via webhook.
 """
 from __future__ import annotations
 
+import json
+
 from ..providers.notification import NotificationProvider, render_template
 from ..providers.payment import PaymentProvider
 from . import repository
@@ -68,8 +70,19 @@ def payment_link(state: dict, payment: PaymentProvider, notifier: NotificationPr
     replaced = []
     for previous in repository.list_recovery_actions(state["recovery_event_id"]):
         if previous["action_type"] == "PAYMENT_LINK" and previous.get("provider_reference"):
+            response = previous.get("provider_response") or {}
+            if isinstance(response, str):
+                try:
+                    response = json.loads(response)
+                except json.JSONDecodeError:
+                    response = {}
+            provider_status = str(response.get("status", "")).lower()
+            if provider_status in {"paid", "partially_paid", "cancelled", "expired"}:
+                replaced.append({"reference": previous["provider_reference"],
+                                 "result": {"status": provider_status, "skipped": True}})
+                continue
             replaced.append({"reference": previous["provider_reference"],
-                             "result": payment.expire_payment_link(previous["provider_reference"])})
+                             "result": payment.cancel_payment_link(previous["provider_reference"])})
     resp = payment.create_payment_link(amount=amount, idempotency_key=idem,
                                        meta={"description": f"Payment for {state.get('order_id')}",
                                              "customer": customer, "notify": payment.name != "mock",

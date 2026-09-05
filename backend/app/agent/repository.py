@@ -21,7 +21,7 @@ def get_recovery_event(recovery_event_id: str, merchant_id: str) -> dict | None:
 
 def list_recovery_actions(recovery_event_id: str) -> list[dict]:
     return db.query(
-        "SELECT action_type, provider_reference, status FROM recovery_actions "
+        "SELECT action_type, provider_reference, status, provider_response FROM recovery_actions "
         "WHERE recovery_event_id = ? ORDER BY id ASC", (recovery_event_id,)
     )
 

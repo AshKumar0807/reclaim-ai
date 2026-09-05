@@ -43,7 +43,11 @@ class PaymentProvider(ABC):
     def get_payment(self, payment_id: str) -> dict: ...
 
     @abstractmethod
-    def expire_payment_link(self, payment_link_id: str) -> dict: ...
+    def cancel_payment_link(self, payment_link_id: str) -> dict: ...
+
+    def expire_payment_link(self, payment_link_id: str) -> dict:
+        """Backward-compatible alias for older provider integrations."""
+        return self.cancel_payment_link(payment_link_id)
 
 
 class MockPaymentProvider(PaymentProvider):
@@ -82,8 +86,8 @@ class MockPaymentProvider(PaymentProvider):
     def get_payment(self, payment_id: str) -> dict:
         return {"provider": self.name, "id": payment_id, "status": "unknown"}
 
-    def expire_payment_link(self, payment_link_id: str) -> dict:
-        return {"provider": self.name, "id": payment_link_id, "status": "expired"}
+    def cancel_payment_link(self, payment_link_id: str) -> dict:
+        return {"provider": self.name, "id": payment_link_id, "status": "cancelled"}
 
 
 class RazorpayProvider(PaymentProvider):
@@ -148,8 +152,19 @@ class RazorpayProvider(PaymentProvider):
         except httpx.HTTPError as exc:
             raise ProviderError(f"razorpay_get_failed: {exc}") from exc
 
-    def expire_payment_link(self, payment_link_id: str) -> dict:
-        raise ProviderError("Razorpay direct adapter does not support link updates; use MCP")
+    def cancel_payment_link(self, payment_link_id: str) -> dict:
+        try:
+            with self._client() as c:
+                r = c.post(f"/payment_links/{payment_link_id}/cancel")
+                r.raise_for_status()
+                return r.json()
+        except httpx.HTTPStatusError as exc:
+            detail = exc.response.text[:500]
+            raise ProviderError(
+                f"razorpay_link_cancel_failed: HTTP {exc.response.status_code}: {detail}"
+            ) from exc
+        except httpx.HTTPError as exc:
+            raise ProviderError(f"razorpay_link_cancel_failed: {exc}") from exc
 
 
 class MCPPaymentProvider(PaymentProvider):
@@ -211,14 +226,13 @@ class MCPPaymentProvider(PaymentProvider):
     def get_payment(self, payment_id: str) -> dict:
         return self._call("fetch_payment", {"payment_id": payment_id})
 
-    def expire_payment_link(self, payment_link_id: str) -> dict:
-        # Razorpay requires expire_by to be at least 15 minutes in the future.
-        # Disable reminders immediately and let the old link expire shortly.
-        return self._call("update_payment_link", {
-            "payment_link_id": payment_link_id,
-            "expire_by": int(time.time()) + 900,
-            "reminder_enable": False,
-        })
+    def cancel_payment_link(self, payment_link_id: str) -> dict:
+        settings = get_settings()
+        if not settings.razorpay_key_id or not settings.razorpay_key_secret:
+            raise ProviderError("razorpay_link_cancel_failed: credentials are not configured")
+        return RazorpayProvider(
+            settings.razorpay_key_id, settings.razorpay_key_secret
+        ).cancel_payment_link(payment_link_id)
 
 
 def get_payment_provider(settings: Settings | None = None) -> PaymentProvider:

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 
 from app import db, webhook_intake
+from app.agent import interventions
 from app.agent.idempotency import idempotency_key
 from tests.conftest import drain
 
@@ -135,3 +136,43 @@ def test_capture_matches_created_razorpay_order_id():
                          ("rec_order_capture",))
     assert after["status"] == "RECOVERED"
     assert after["recovered_amount"] == 300000
+
+
+def test_payment_link_retry_cancels_only_active_previous_links(monkeypatch):
+    class FakePayment:
+        name = "razorpay"
+
+        def __init__(self):
+            self.cancelled = []
+
+        def get_payment(self, payment_id):
+            return {"customer": {"email": "customer@example.com"}}
+
+        def cancel_payment_link(self, payment_link_id):
+            self.cancelled.append(payment_link_id)
+            return {"id": payment_link_id, "status": "cancelled"}
+
+        def create_payment_link(self, **kwargs):
+            return {"status": "issued", "reference": "plink_new", "short_url": "https://rzp.test/new"}
+
+    class FakeNotifier:
+        def send(self, **kwargs):
+            return {"status": "sent"}
+
+    payment = FakePayment()
+    monkeypatch.setattr(interventions, "_render", lambda *args: "Complete your payment")
+    monkeypatch.setattr(interventions.repository, "list_recovery_actions", lambda recovery_id: [
+        {"action_type": "PAYMENT_LINK", "provider_reference": "plink_paid",
+         "provider_response": '{"status":"paid"}'},
+        {"action_type": "PAYMENT_LINK", "provider_reference": "plink_active",
+         "provider_response": '{"status":"created"}'},
+    ])
+
+    result = interventions.payment_link(
+        {"merchant_id": MERCHANT, "recovery_event_id": "rec_links", "amount": 90000,
+         "payment_id": "pay_failed", "customer_ref": "customer@example.com",
+         "action_params": {}}, payment, FakeNotifier(), "idem_new_link")
+
+    assert payment.cancelled == ["plink_active"]
+    assert result["provider_response"]["replaced_links"][0]["result"]["skipped"] is True
+    assert result["provider_response"]["replaced_links"][1]["result"]["status"] == "cancelled"
