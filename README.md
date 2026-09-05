@@ -1,4 +1,4 @@
-# ReclaimAI — Autonomous Revenue Recovery (v2)
+# ReSpark — Autonomous Revenue Recovery (v2)
 
 > Detect revenue at risk → diagnose → decide a **bounded** intervention → enforce
 > **deterministic guardrails** → execute through a **tool interface** → attribute
