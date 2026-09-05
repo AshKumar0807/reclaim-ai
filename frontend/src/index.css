@@ -1,9 +1,17 @@
+<<<<<<< HEAD
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap');
 
+=======
+>>>>>>> main
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+<<<<<<< HEAD
+=======
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap');
+
+>>>>>>> main
 :root { font-family: "Manrope", sans-serif; color: #e8edf5; background: #080b12; font-synthesis: none; }
 body { @apply bg-slate-950 text-slate-100; margin: 0; }
 button, input, select { font: inherit; }
