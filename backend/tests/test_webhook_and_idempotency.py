@@ -105,3 +105,33 @@ def test_capture_is_idempotent():
     rec = db.query_one("SELECT COUNT(*) c FROM recovery_events WHERE payment_id='pay_cap2' "
                        "AND status='RECOVERED'")["c"]
     assert rec == 1
+
+
+def test_capture_matches_created_razorpay_order_id():
+    """A later payment on the recovery-created Razorpay Order settles it."""
+    _insert_open_recovery("rec_order_capture", "pay_failed_order")
+    action_id = db.execute(
+        "INSERT INTO recovery_actions "
+        "(merchant_id, recovery_event_id, action_type, idempotency_key, status, provider_reference) "
+        "VALUES (?,?,?,?, 'executed', ?)",
+        (MERCHANT, "rec_order_capture", "SMART_RETRY", "idem_order_capture", "order_recovery_123"),
+    )
+    db.execute("UPDATE recovery_events SET status='EXECUTED' WHERE id=?", ("rec_order_capture",))
+
+    before = db.query_one("SELECT status FROM recovery_events WHERE id=?", ("rec_order_capture",))
+    assert before["status"] == "EXECUTED"
+
+    captured = json.dumps({
+        "id": "evt_capture_recovery_order", "event": "payment.captured",
+        "payload": {"payment": {"entity": {
+            "id": "pay_new_success", "order_id": "order_recovery_123",
+            "amount": 300000, "currency": "INR"}}},
+        "metadata": {"merchant_id": MERCHANT},
+    }).encode()
+    result = webhook_intake.process_webhook(captured, None, MERCHANT)
+
+    assert result["recovery_event_id"] == "rec_order_capture"
+    after = db.query_one("SELECT status, recovered_amount FROM recovery_events WHERE id=?",
+                         ("rec_order_capture",))
+    assert after["status"] == "RECOVERED"
+    assert after["recovered_amount"] == 300000

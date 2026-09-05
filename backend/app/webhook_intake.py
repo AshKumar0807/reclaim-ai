@@ -116,6 +116,7 @@ def process_webhook(raw_body: bytes, signature: str | None, merchant_id: str,
         # Outcome / natural recovery (spec 13/14). Attribute to an open recovery.
         event_id = outcome.apply_payment_captured(
             merchant_id=merchant_id, payment_id=info["payment_id"],
+            order_id=info["order_id"],
             amount=info["amount"], provider_reference=info["provider_reference"],
             correlation_id=correlation_id, natural=True)
         return {"status": "captured_processed", "recovery_event_id": event_id, "http": 200}

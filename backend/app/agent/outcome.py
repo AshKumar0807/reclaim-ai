@@ -15,6 +15,7 @@ TERMINAL = {"RECOVERED", "CLOSED_LOST", "OPTED_OUT"}
 
 
 def _find_recovery_for_payment(merchant_id: str, payment_id: str | None,
+                               order_id: str | None,
                                provider_reference: str | None) -> dict | None:
     """Match an incoming capture to an open recovery event."""
     if payment_id:
@@ -22,6 +23,16 @@ def _find_recovery_for_payment(merchant_id: str, payment_id: str | None,
             "SELECT * FROM recovery_events WHERE merchant_id = ? AND payment_id = ? "
             "ORDER BY created_at DESC LIMIT 1",
             (merchant_id, payment_id),
+        )
+        if row:
+            return row
+    if order_id:
+        row = db.query_one(
+            "SELECT re.* FROM recovery_events re "
+            "JOIN recovery_actions ra ON ra.recovery_event_id = re.id "
+            "WHERE re.merchant_id = ? AND ra.provider_reference = ? "
+            "ORDER BY re.created_at DESC LIMIT 1",
+            (merchant_id, order_id),
         )
         if row:
             return row
@@ -40,10 +51,11 @@ def _find_recovery_for_payment(merchant_id: str, payment_id: str | None,
 
 def apply_payment_captured(*, merchant_id: str, payment_id: str | None,
                            amount: int, provider_reference: str | None = None,
+                           order_id: str | None = None,
                            correlation_id: str | None = None,
                            natural: bool = False) -> str | None:
     """Mark the matching recovery RECOVERED (idempotently). Returns event id."""
-    event = _find_recovery_for_payment(merchant_id, payment_id, provider_reference)
+    event = _find_recovery_for_payment(merchant_id, payment_id, order_id, provider_reference)
     if event is None:
         return None
     if event["status"] in TERMINAL:
